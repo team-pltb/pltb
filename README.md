@@ -29,20 +29,28 @@ Here is a list of available make targets:
 - `clean`: standard cleanup
 
 Note, that the first 6 targets use gcc with optimization level `O3`, C language standard gnu99 and very restrictive compiler warnings enabled.
+For the exact flags take a look at the Makefile.
 All builds use mpicc to accomplish the actual compilation against your installed MPI implementation.
 
 ## Usage
 
 ### Command-line interface:
-- `-f/--data <datafile>;`:  *mandatory* argument with filepath to dataset. Supported formats: PHYLIP or FASTA
-- `-b/--opt-freq`: *optional* flag instructing pll to use *optimized* base frequencies
-- `-l/--lower-bound <index>;`: *optional* lower index bound for matrices to be checked. Index value will be *included*. default = 0
-- `-u/--upper-bound <index>;`: *optional* upper index bound for matrices to be checked. Index value will be *excluded*. default = 203
-- `-n/--npthreads <number>;`: *optional* number of threads used per process in model evaluation phase. Default = 1
-- `-s/--npthreads-tree <number>;`: *optional* number of threads used when conducting the tree search. Default = 1
-- `-r/--rseed <value>;`: *optional* random seed for model evaluation phase. Affects the starting tree on which model optimizations are applied. Default = 0x12345
+- `-f/--data <datafile>;`:  *mandatory* argument with file path to dataset.
+  - Supported formats: PHYLIP or FASTA
+- `-b/--opt-freq`: *optional* flag instructing PLL to use *optimized* base frequencies
+- `-l/--lower-bound <index>;`: *optional* lower index bound for matrices to be checked. Index value will be *included*.
+  - default = 0
+- `-u/--upper-bound <index>;`: *optional* upper index bound for matrices to be checked. Index value will be *excluded*.
+  - default = 203
+- `-n/--npthreads <number>;`: *optional* number of threads used per process in model evaluation phase.
+  - default = 1 (requires a pthreads PLL variant)
+- `-s/--npthreads-tree <number>;`: *optional* number of threads used when conducting the tree search.
+  - default = 1 (requires a pthreads PLL variant)
+- `-r/--rseed <value>;`: *optional* random seed for model evaluation phase. Affects the starting tree on which model optimizations are applied.
+  - default = 0x12345
 - `-c/--config`: *optional* flag instructing the program configuration to be printed before starting execution of the main program
-- `-p/--progress`: *optional* flag instructing the program to show a progress bar in model evaluation phase. Only effective in (MPI) parallel version
+- `-p/--progress`: *optional* flag instructing the program to show a progress bar in model evaluation phase. 
+  - only activatable when using MPI parallelization
 - `-g/--with-gtr`: *optional* flag instructing the program to additionally conduct a tree search with the GTR-model
 
 ### MPI
