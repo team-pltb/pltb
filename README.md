@@ -55,5 +55,5 @@ All builds use mpicc to accomplish the actual compilation against your installed
 
 ### MPI
 The model evaluation phase comes with a MPI Master/Worker parallelization.
-Running it with `mpirun -np <#processes> ./pltb args...` will lead to the execution with one master process and (#processes - 1) worker processes.
-As the pthread parallelization uses thread-to-core-pinning it is recommend to choose ((#processes - 1) * #npthreads + 1) lower or equal the amount of cores to use.
+Running it with `mpirun -np <#processes> ./pltb args...` will lead to the execution of one master process and (#processes - 1) worker processes.
+As the pthread parallelization uses thread-to-core-pinning it is recommend to choose ((#processes - 1) * #npthreads + 1) lower or equal the amount of cores available.
