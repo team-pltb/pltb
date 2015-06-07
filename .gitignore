@@ -1,3 +1,5 @@
+eval/res/histograms
+
 # Object files
 *.o
 *.ko
