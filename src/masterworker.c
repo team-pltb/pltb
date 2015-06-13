@@ -27,7 +27,12 @@
 
 #include "masterworker.h"
 
+#ifdef __APPLE__
+#include "time_mach.h"
+#else
 #include "time.h"
+#endif
+
 #define DEBUG_PROCESS_STATISTICS_OPEN_OUTPUT stdout
 #define DEBUG_PROCESS_STATISTICS_CLOSE_OUTPUT(f)
 //#define DEBUG_PROCESS_STATISTICS_OPEN_OUTPUT fopen("performance.txt", "w")

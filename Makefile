@@ -1,7 +1,12 @@
+UNAME := $(shell uname)
 TARGET=pltb.out
 CC=gcc
 MCC=MPICH_CC=$(CC) OMPI_CC=$(CC) mpicc
+ifeq ($(UNAME), Darwin)
+LFLAGS=-lm
+else
 LFLAGS=-lm -lrt
+endif
 CFLAGS=-c -O3 -std=gnu99 -Wall -Wextra -Wredundant-decls -Wswitch-default \
 -Wimport -Wno-int-to-pointer-cast -Wbad-function-cast \
 -Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
@@ -12,7 +17,7 @@ CFLAGS=-c -O3 -std=gnu99 -Wall -Wextra -Wredundant-decls -Wswitch-default \
 default: avx
 
 clang: CC := clang
-clang: CFLAGS += -Weverything -pedantic
+clang: CFLAGS += -Weverything -pedantic -w
 clang: LFLAGS += -l pll-avx
 clang: $(TARGET)
 
