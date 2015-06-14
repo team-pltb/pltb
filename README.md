@@ -84,10 +84,10 @@ We evaluated each of our datasets several times with different configurations us
 4 different random seeds 0x12345, 0x00000, 0xFFFFF and 0x54321, as well as 2 kinds of base frequencies (empirical and optimized) lead to 8 results per dataset file.
 
 The results reside in `eval/res/results/*/*.result`, whereas the first wildcard represents the dataset source.
-The second wildcard, the filename, conforms to the following naming pattern: `DATAFILE-RSEED[-opt].result`
+The second wildcard, the filename, conforms to the following naming pattern: `DATAFILE-RSEED[-opt].result`, where
 * `DATAFILE` is the name of the dataset file,
-* `RSEED` is the random seed used to initialize the PLL instance
-* `-opt` implies optimized base frequencies, otherwise empirical base frequencies are assumed
+* `RSEED` is the random seed used to initialize the PLL instance,
+* `-opt` implies optimized base frequencies, otherwise empirical base frequencies are assumed.
 
 ### Scripts
 
@@ -96,7 +96,7 @@ Note, that the working directory has to be the root of this repository and _not_
 * `eval/pltb_evaluate_dataset_folder.sh` is used for processing whole dataset folders with pltb.
 Every file in the given source folder is evaluated n times, where n equals the number of random seeds times 2 (empirical and optimized base frequencies).
 The results are written to the given destination folder, using the above naming pattern.
-For our evaluation we used four hex seeds 0x12345, 0x00000, 0xFFFFF and 0x54321.
+For our evaluation we used four hex seeds (see above).
 Note, that you have to adapt the three variables `processes`, `threads_per_process` and `threads_for_search` to your
 hardware capabilities.
 * `eval/calculate_distances.py` is used for analyzing pltb results with RAxML (RF-distances).
@@ -115,7 +115,7 @@ Note, that this script requires the previous script to have written the differen
 
 ### Histograms
 
-To generate the histogram plots execute the following commands:
+To generate the histogram plots out of the precomputed results execute the following commands:
 
 ```SHELL
 ./eval/calculate_distances.py --raxml <PATH_TO_YOUR_RAXML_BINARY> eval/res/results/*/*.result --hist
