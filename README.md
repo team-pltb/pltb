@@ -115,7 +115,7 @@ Note, that this script requires the previous script to have written the differen
 
 ### Histograms
 
-To generate the histogram plots out of the precomputed results execute the following commands:
+To generate the histogram plots using the precomputed results execute the following commands:
 
 ```SHELL
 ./eval/calculate_distances.py --raxml <PATH_TO_YOUR_RAXML_BINARY> eval/res/results/*/*.result --hist
