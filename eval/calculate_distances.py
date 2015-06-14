@@ -216,14 +216,15 @@ def print_sorted_distances(raxml, results):
 # The dictionary will now map the tuple containing both labels to a list containing various distances.
 #
 # The tuple (the key) containing both labels is first normalized using canonical ordering.
+# Except that, if ic1 or ic2 is 'extra' it has to be the second key entry.
 # This is important, as the inserted distance value has commutative semantics.
 #
 # The list for the values is created lazily on demand.
 def insert_lazy(d, (ic1, ic2), value):
-    if (ic1 <= ic2):
-        key = (ic1, ic2);
-    else:
+    if ((ic1 >= ic2) and (ic1 != 'extra')) or (ic2 == 'extra'):
         key = (ic2, ic1);
+    else:
+        key = (ic1, ic2);
     if key in d:
         d[key].append(value);
     else:
