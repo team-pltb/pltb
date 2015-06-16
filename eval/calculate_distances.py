@@ -270,12 +270,9 @@ def print_hist_ic(raxml, results):
         with open('eval/res/histograms/data/%s-%s' % (serialize_ic(ic1), serialize_ic(ic2)), 'w') as target_file:
             target_file.write("\n".join(map(str, relatives)) + "\n");
 
-# This function takes the RAxML binary and a list of PLTB result files
-# to write files in eval/res/histograms/data for histogram generation.
 def print_hist_model(raxml, results):
     print("Processing %d results" % (len(results)));
-    # empty map which will contain mappings of the following format:
-    # (ic1, ic2) -> [distance_value1, distance_value2, ...]
+    print("Counting models chosen by several ICs per dataset only once");
     models=dict()
     for f in results:
         # take a single result file f
@@ -296,12 +293,38 @@ def print_hist_model(raxml, results):
     with open('eval/res/histograms/model_data/overall', 'w') as target_file:
         target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n");
 
-actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist_ic, 'hist-model': print_hist_model})
+def print_hist_model_per_ic(raxml, results):
+    print("Processing %d results" % (len(results)));
+
+    ic_models=dict()
+    for f in results:
+
+        trees = parse_trees(f);
+        for tree in trees:
+            model = tree[0]
+            for ic in tree[1]:
+                if model == "012345" and ic == "extra":
+                    continue
+                if ic not in ic_models:
+                    ic_models[ic] = dict()
+                if model not in ic_models[ic]:
+                    ic_models[ic][model] = 0
+                ic_models[ic][model] += 1
+
+    assert_dir('eval/res/histograms/model_data');
+
+    for (ic, models) in ic_models.iteritems():
+        with open('eval/res/histograms/model_data/%s' % (serialize_ic(ic)), 'w') as target_file:
+            target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n");
+
+
+parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
+
+actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist_ic, 'hist-model': print_hist_model, 'hist-model-per-ic': print_hist_model_per_ic})
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
 parser.add_argument('action', choices=actions, help='the operation to conduct');
 parser.add_argument('results', type=str, nargs='+', help='the pltb results')
-
 parser.add_argument('--raxml', dest='raxml', default='raxmlHPC-SSE3', help='RAxML binary for RF-distance calculation. default: raxmlHPC-SSE3')
 
 args = parser.parse_args();
