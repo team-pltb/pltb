@@ -287,15 +287,22 @@ def print_hist_model(raxml, results):
                 models[model] = 0
             models[model] += 1
 
-    assert_dir('eval/res/histograms/model_data');
+    assert_dir('eval/res/histograms/model_data')
 
     # write each map entry to a file
     with open('eval/res/histograms/model_data/overall', 'w') as target_file:
-        target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n");
+        target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n")
+
+def init_zero_dict(ics):
+    d = dict()
+    for ic in ics:
+        d[ic] = 0
+    return d
 
 def print_hist_model_per_ic(raxml, results):
     print("Processing %d results" % (len(results)));
 
+    # ic_models: ic -> (model -> count)
     ic_models=dict()
     for f in results:
 
@@ -315,7 +322,19 @@ def print_hist_model_per_ic(raxml, results):
 
     for (ic, models) in ic_models.iteritems():
         with open('eval/res/histograms/model_data/%s' % (serialize_ic(ic)), 'w') as target_file:
-            target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n");
+            target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n")
+
+    ics = sorted(ic_models.keys())
+
+    combined = dict()
+    for (ic, models) in ic_models.iteritems():
+        for (model, count) in models.iteritems():
+            if model not in combined:
+                combined[model] = init_zero_dict(ics)
+            combined[model][ic] = count
+    with open('eval/res/histograms/model_data/combined', 'w') as target_file:
+        target_file.write("Model " + " ".join(map(lambda ic: "'%s'" % (ic), ics)) + "\n");
+        target_file.write("\n".join(map(lambda (model, counts): model + " " + " ".join(map(str, map(itemgetter(1), sorted(counts.iteritems(), key=itemgetter(0))))), combined.iteritems())))
 
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
