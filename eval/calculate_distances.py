@@ -230,7 +230,7 @@ def assert_dir(path):
 
 # This function takes the RAxML binary and a list of PLTB result files
 # to write files in eval/res/histograms/data for histogram generation.
-def print_hist(raxml, results):
+def print_hist_ic(raxml, results):
     print("Processing %d results" % (len(results)));
     # empty map which will contain mappings of the following format:
     # (ic1, ic2) -> [distance_value1, distance_value2, ...]
@@ -270,11 +270,38 @@ def print_hist(raxml, results):
         with open('eval/res/histograms/data/%s-%s' % (serialize_ic(ic1), serialize_ic(ic2)), 'w') as target_file:
             target_file.write("\n".join(map(str, relatives)) + "\n");
 
-actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist})
+# This function takes the RAxML binary and a list of PLTB result files
+# to write files in eval/res/histograms/data for histogram generation.
+def print_hist_model(raxml, results):
+    print("Processing %d results" % (len(results)));
+    # empty map which will contain mappings of the following format:
+    # (ic1, ic2) -> [distance_value1, distance_value2, ...]
+    models=dict()
+    for f in results:
+        # take a single result file f
+
+        # parse the contained trees
+        trees = parse_trees(f);
+        for tree in trees:
+            model = tree[0]
+            if model == "012345" and "extra" in tree[1]:
+                continue
+            if model not in models:
+                models[model] = 0
+            models[model] += 1
+
+    assert_dir('eval/res/histograms/model_data');
+
+    # write each map entry to a file
+    with open('eval/res/histograms/model_data/overall', 'w') as target_file:
+        target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n");
+
+actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist_ic, 'hist-model': print_hist_model})
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
 parser.add_argument('action', choices=actions, help='the operation to conduct');
 parser.add_argument('results', type=str, nargs='+', help='the pltb results')
+
 parser.add_argument('--raxml', dest='raxml', default='raxmlHPC-SSE3', help='RAxML binary for RF-distance calculation. default: raxmlHPC-SSE3')
 
 args = parser.parse_args();
