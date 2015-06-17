@@ -240,7 +240,7 @@ int main (int argc, char **argv)
 
 		// configure model space
 		model_space_t model_space;
-		init_range_model_space(&model_space, lower_bound, upper_bound);
+		init_range_model_space(&model_space, (unsigned)lower_bound, (unsigned)upper_bound);
 		// choose implementation
 #if MPI_MASTER_WORKER
 		if (n_processes > 1) {

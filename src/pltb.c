@@ -112,7 +112,7 @@ pllInstance *setup_instance( char *matrix, pllInstanceAttr *attr, pllAlignmentDa
 void calculate_model_ICs(pltb_model_stat_t *stat, pllAlignmentData* data, pllInstance* inst,
 		unsigned model_param_count, pltb_config_t* config)
 {
-	unsigned n_branches = data->sequenceCount * 2 - 3;
+	unsigned n_branches = (unsigned) data->sequenceCount * 2 - 3;
 	switch (config->base_freq_kind) {
 		default:
 			/* TODO error? */

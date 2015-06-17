@@ -33,24 +33,24 @@ typedef enum {
 } pltb_base_freq_t;
 
 typedef struct {
-    double   ic[IC_MAX];
-    unsigned matrix_index[IC_MAX];
+	unsigned matrix_index[IC_MAX];
+	double   ic[IC_MAX];
 } pltb_result_t;
 
 typedef struct {
-	unsigned matrix_index;
 	double likelihood;
 	double ic[IC_MAX];
 	double time_cpu;
 	double time_real;
+	unsigned matrix_index;
 } pltb_model_stat_t;
 
 typedef struct {
 	/* implies a free parameter count of 3 */
-	pltb_base_freq_t base_freq_kind;
+	unsigned *extra_models;
 	pllInstanceAttr attr_model_eval;
 	pllInstanceAttr attr_tree_search;
-	unsigned *extra_models;
+	pltb_base_freq_t base_freq_kind;
 	unsigned n_extra_models;
 } pltb_config_t;
 

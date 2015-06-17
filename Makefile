@@ -17,7 +17,7 @@ CFLAGS=-c -O3 -std=gnu99 -Wall -Wextra -Wredundant-decls -Wswitch-default \
 default: avx
 
 clang: CC := clang
-clang: CFLAGS += -Weverything -pedantic -w
+clang: CFLAGS += -Weverything -pedantic
 clang: LFLAGS += -l pll-avx
 clang: $(TARGET)
 

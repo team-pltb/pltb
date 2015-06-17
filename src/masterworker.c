@@ -237,7 +237,6 @@ static void worker(int process_id, int master_id,
 /**
  * The core function of pltb.
  * @param dataset_file the file containing the sequences
- * @param opt_base_freq either ML estimates of the base frequencies (true) or empirical base frequencies (false)
  */
 int run_master_worker(int process_id, MPI_Comm root_comm, char *dataset_file,
 		pltb_config_t *config, model_space_t *model_space, bool print_progress)
