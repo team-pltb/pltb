@@ -1,9 +1,9 @@
 # PLTB: Phylogenetic likelihood (evaluator) and tree builder
 
-This tool has been designed & developed as a studentical practical project
-in the context of the module bioinformatics at KIT.
+This tool has been designed & developed as a student programming project
+in the context of the module "Bioinformatics" at the Karlsruhe Institute of Technology (KIT).
 
-It's main functionality is to find the best time-reversible substitution models
+Its main functionality is to find the best time-reversible substitution models
 for a given dataset and to conduct a tree search using the chosen models afterwards.
 
 For this, the maximum likelihood of every model under the given dataset is
@@ -14,7 +14,7 @@ leading to the estimation of the maximum likelihood value.
 ## Make
 
 To build pltb you have to make sure that PLL [http://libpll.org/] is installed.
-Furthermore a MPI implementation (either MPICH or OMPI) is required.
+Furthermore an MPI implementation (either MPICH or OMPI) is required.
 Afterwards you can call `make` to generate the pltb variants suitable for your system.
 
 Here is a list of available make targets:
@@ -28,7 +28,7 @@ Here is a list of available make targets:
 - `default` implies target `avx`
 - `clean` standard cleanup
 
-Note, that the first 6 targets use gcc with optimization level `O3`, C language standard gnu99 and very restrictive compiler warnings enabled.
+Note that the first 6 targets use gcc with optimization level `O3`, C language standard gnu99 and very restrictive compiler warnings enabled.
 For the exact flags take a look at the Makefile.
 All builds use mpicc to accomplish the actual compilation against your installed MPI implementation.
 
@@ -49,14 +49,14 @@ All builds use mpicc to accomplish the actual compilation against your installed
 - `-r/--rseed <value>` *optional* random seed for model evaluation phase. Affects the starting tree on which model optimizations are applied.
   - default = 0x12345
 - `-c/--config` *optional* flag instructing the program configuration to be printed before starting execution of the main program
-- `-p/--progress` *optional* flag instructing the program to show a progress bar in model evaluation phase. 
+- `-p/--progress` *optional* flag instructing the program to show a progress bar in model evaluation phase.
   - only activatable when using MPI parallelization
 - `-g/--with-gtr` *optional* flag instructing the program to additionally conduct a tree search with the GTR-model
 
 ### MPI
-The model evaluation phase comes with a MPI Master/Worker parallelization.
+The model evaluation phase comes with an MPI Master/Worker parallelization.
 Running it with `mpirun -np <#processes> ./pltb.out args...` will lead to the execution with one master process and `#processes - 1` worker processes.
-As the pthread parallelization uses thread-to-core-pinning it is recommend to choose `1 + (#processes - 1) * #npthreads` lower or equal the amount of cores available.
+As the pthread parallelization uses thread-to-core-pinning it is recommended to choose `1 + (#processes - 1) * #npthreads` lower or equal the amount of cores available.
 
 ## Evaluation
 
@@ -71,9 +71,9 @@ We differentiate between 5 sources:
 * Empirical datasets used for testing Bayesian inference programs
   * lakner
   * mrbayes
-* Datasets from the original paper by John Huelsenbeck
+* Datasets from the <a href=http://mbe.oxfordjournals.org/content/21/6/1123.abstract>original paper</a> by John Huelsenbeck
   * originalPaper
-* Test datasets from http://exelixis-lab.org designated for the programming practical
+* Test datasets from <a href=http://exelixis-lab.org>Exelixis Lab</a> designated for the programming practical
   * testDatasets
 * Other not further categorized datasets
   * otherDatasets
@@ -92,15 +92,15 @@ The second wildcard, the filename, conforms to the following naming pattern: `DA
 ### Scripts
 
 In the folder `eval` you can find the scripts described in the following.
-Note, that the working directory has to be the root of this repository and _not_ the `eval` folder.
+Note that the working directory has to be the root of this repository and _not_ the `eval` folder.
 * `eval/pltb_evaluate_dataset_folder.sh` is used for processing whole dataset folders with pltb.
 Every file in the given source folder is evaluated n times, where n equals the number of random seeds times 2 (empirical and optimized base frequencies).
 The results are written to the given destination folder, using the above naming pattern.
 For our evaluation we used four hex seeds (see above).
-Note, that you have to adapt the three variables `processes`, `threads_per_process` and `threads_for_search` to your
+Note that you have to adapt the three variables `processes`, `threads_per_process` and `threads_for_search` to your
 hardware capabilities.
 * `eval/calculate_distances.py` is used for analyzing pltb results with RAxML (RF-distances).
-The scripts main function is to extract the trees from a pltb result and feed them into RAxML to retreive the pairwise RF-distances.
+The scripts' main function is to extract the trees from a pltb result and feed them into RAxML to retrieve the pairwise RF-distances.
 The RAxML binary can be supplied with the optional command line argument `--raxml`.
 If not supplied, the binary `raxmlHPC-SSE3` is assumed to be in the path.
 Further processing can be triggered by optional command line arguments.
@@ -109,9 +109,9 @@ Further processing can be triggered by optional command line arguments.
   * `--hist` gathers the distances over all given pltb results grouped by information criteria pairs.
   For example, the pair AIC/BIC would yield a list of RF-distances between the trees generated by their respective models.
   These difference lists are then written to the directory `eval/res/histograms/data` using the naming pattern `IC1-IC2`.
-  Note that, the term `extra` stands for the GTR model.
+  Note that the term `extra` stands for the GTR model.
 * `eval/generate_histogram_plots.sh` uses the difference lists in `eval/res/histograms/data` to generate respective histograms in `eval/res/histograms/plots` formatted & controlled by the gnuplot file `eval/rf_histogram.plot`.
-Note, that this script requires the previous script to have written the difference lists first.
+Note that this script requires the previous script to have written the difference lists first.
 
 ### Histograms
 
@@ -121,4 +121,3 @@ To generate the histogram plots using the precomputed results execute the follow
 ./eval/calculate_distances.py --raxml <PATH_TO_YOUR_RAXML_BINARY> eval/res/results/*/*.result --hist
 ./eval/generate_histogram_plots.sh
 ```
-
