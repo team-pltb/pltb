@@ -1,5 +1,5 @@
 set terminal pdf font "arial,8"
-set output "models_per_ic_histogram.pdf"
+set output "eval/res/histograms/plots/models_per_ic_histogram.pdf"
 
 set title "Model selection depicted by information criteria"
 
