@@ -172,19 +172,6 @@ def parse_distances(distance_result):
         pass # fine
     return distances;
 
-# This function is deprecated.
-# It's purpose was to print the distances and the corresponding models in a format other
-# analyzation scripts could handle.
-# TODO delete
-def print_distances(raxml, results):
-    for f in results:
-        trees = parse_trees(f);
-        print("Models: " + ', '.join(map(lambda (m,cs,_): m + " (" + ','.join(cs) + ")", trees)));
-        if (len(trees) > 1):
-            print(calculate_distances(raxml, trees), end="");
-        elif (len(trees) == 1):
-            print("Single tree, nothing to be done.");
-
 # This function takes the RAxML binary, an list of (PLTB) result files
 # and prints a sorted list over all found relative distances.
 # Each printed distance value is associated with the corresponding result file
@@ -283,21 +270,15 @@ def print_hist(raxml, results):
         with open('eval/res/histograms/data/%s-%s' % (serialize_ic(ic1), serialize_ic(ic2)), 'w') as target_file:
             target_file.write("\n".join(map(str, relatives)) + "\n");
 
+actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist})
+
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
-parser.add_argument('results', type=str, nargs='+',
-                           help='the pltb results')
-# TODO use choices for 'action': setting both the following arguments may have unintended effects
-parser.add_argument('--sort', dest='action', action='store_const', const=print_sorted_distances, default=print_distances, help='print the sorted output over all distances')
-parser.add_argument('--hist', dest='action', action='store_const', const=print_hist, help='generate histogram data in eval/res/histograms/data')
+parser.add_argument('action', choices=actions, help='the operation to conduct');
+parser.add_argument('results', type=str, nargs='+', help='the pltb results')
 parser.add_argument('--raxml', dest='raxml', default='raxmlHPC-SSE3', help='RAxML binary for RF-distance calculation. default: raxmlHPC-SSE3')
 
 args = parser.parse_args();
 
-# args.action gets set by --sort and --hist
-# if --sort, print_sorted_distances is called
-# if --hist, print_hist is called
-# else, print_distances is called
-args.action(args.raxml, args.results);
-
+actions[args.action](args.raxml, args.results);
 
 exit(0);
