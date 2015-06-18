@@ -333,7 +333,7 @@ def print_hist_model_per_ic(raxml, results):
                 combined[model] = init_zero_dict(ics)
             combined[model][ic] = count
     with open('eval/res/histograms/model_data/combined', 'w') as target_file:
-        target_file.write("Model " + " ".join(map(lambda ic: "'%s'" % (ic), ics)) + "\n");
+        target_file.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (ic), ics)) + "\n");
         target_file.write("\n".join(map(lambda (model, counts): model + " " + " ".join(map(str, map(itemgetter(1), sorted(counts.iteritems(), key=itemgetter(0))))), combined.iteritems())))
 
 
