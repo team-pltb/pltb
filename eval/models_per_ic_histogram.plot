@@ -8,7 +8,7 @@ set style fill solid 1.0 border lt -1
 set style data histograms
 set xtics rotate
 
-set ylabel "#"
+set ylabel "# selections"
 set xlabel "Models"
 
 uparam=""
