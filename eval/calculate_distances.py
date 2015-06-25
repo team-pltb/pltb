@@ -222,6 +222,9 @@ def insert_lazy(d, (ic1, ic2), value):
 def serialize_ic(ic):
     return ic.replace(' ', '').lower();
 
+def replace_ic(ic):
+    return {'AIC': 'AIC', 'AICc C': 'AIC-S', 'AICc RC': 'AIC-M', 'BIC': 'BIC', 'BIC C': 'BIC-S', 'BIC RC': 'BIC-M'}[ic];
+
 # Make sure the given path exists.
 # Creates all folders on the path if required.
 def assert_dir(path):
@@ -333,7 +336,7 @@ def print_hist_model_per_ic(raxml, results):
                 combined[model] = init_zero_dict(ics)
             combined[model][ic] = count
     with open('eval/res/histograms/model_data/combined', 'w') as target_file:
-        target_file.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (ic), ics)) + "\n");
+        target_file.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (replace_ic(ic)), ics)) + "\n");
         target_file.write("\n".join(map(lambda (model, counts): model + " " + " ".join(map(str, map(itemgetter(1), sorted(counts.iteritems(), key=itemgetter(0))))), iter(sorted(combined.iteritems())))))
 
 
