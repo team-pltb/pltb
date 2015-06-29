@@ -207,7 +207,11 @@ int main (int argc, char **argv)
 
 	if(!error)
 	{
+#if MPI_MASTER_WORKER
 		if (print_config && process_id == 0) {
+#else
+		if (print_config) {
+#endif
 			DBG("Configuration\n");
 			DBG("\tDataset: %s\n", datafile);
 			DBG("\tRandom number seeds: %#lx/%#lx\n", config.attr_model_eval.randomNumberSeed, config.attr_tree_search.randomNumberSeed);
