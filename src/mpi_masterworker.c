@@ -25,7 +25,7 @@
 #include "mpi_backend.h"
 #include "pltb_frontend.h"
 
-#include "masterworker.h"
+#include "mpi_masterworker.h"
 
 #ifdef __APPLE__
 #include "time_mach.h"

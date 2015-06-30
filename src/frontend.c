@@ -33,7 +33,7 @@
 
 #include "sequential.h"
 #if MPI_MASTER_WORKER
-	#include "masterworker.h"
+	#include "mpi_masterworker.h"
 #endif
 
 #if MPI_MASTER_WORKER

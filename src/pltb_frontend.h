@@ -20,7 +20,6 @@
 
 #include <pll/pll.h>
 #include "pltb.h"
-#include "mpi_backend.h"
 #include "models.h"
 
 #define OUTPUT_WIDTH 107
