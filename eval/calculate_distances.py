@@ -42,6 +42,7 @@ import argparse
 # The following invariant is assured:
 # If a tuple with the GTR model exists, it is the first tuple of the returned list.
 def parse_trees(pltb_result_file):
+    print(pltb_result_file);
     # start with an empty list of tuples
     trees=[]
 
@@ -62,7 +63,7 @@ def parse_trees(pltb_result_file):
         try:
             while True:
                 line = line_iter.next();
-                result = re.match('^# Model ([0-5]{6}) \[newick\] \(([a-zA-Z ,]*)\)$', line);
+                result = re.match('^# Model ([0-5]{6}) \[newick\] \(([a-zA-Z,\s-]*)\)$', line);
                 if (result != None and result.group(1) != None and result.group(2) != None):
                     try:
                         # add a tuple, note the line_iter.next(), which takes the next line and saves it as the newick tree
@@ -81,7 +82,7 @@ def parse_trees(pltb_result_file):
             break;
 
     if (len(trees) == 0):
-        print("Error: No tree found or GTR not contained.");
+        print("Error: No tree found.");
         exit(1);
     if (trees[0][0] != "012345"):
         print("Warning: GTR not included.");
@@ -220,10 +221,7 @@ def insert_lazy(d, (ic1, ic2), value):
 # Prepare the given IC label for printing.
 # Current semantics: Delete whitespaces and convert to lowercase.
 def serialize_ic(ic):
-    return ic.replace(' ', '').lower();
-
-def replace_ic(ic):
-    return {'AIC': 'AIC', 'AICc C': 'AIC-S', 'AICc RC': 'AIC-M', 'BIC': 'BIC', 'BIC C': 'BIC-S', 'BIC RC': 'BIC-M'}[ic];
+    return ic.replace(' ', '').replace('-', '').lower();
 
 # Make sure the given path exists.
 # Creates all folders on the path if required.
@@ -255,16 +253,17 @@ def print_hist_ic(raxml, results):
             for key in [(ic1, ic2) for ic1 in tree[1] for ic2 in tree[1] if ic1 < ic2]:
                 insert_lazy(differences, key, 0.0);
 
-        # now calculate and parse the distances regarding the given tree-list
-        distances = parse_distances(calculate_distances(raxml, trees));
-        # for each mapping
-        for ((id1, id2), (absolute, relative)) in distances.iteritems():
-            # for each IC label for the tree of the first index
-            for ic1 in trees[id1][1]:
-                # for each IC label for the tree of the second index
-                for ic2 in trees[id2][1]:
-                    # insert the distance into the map for both ICs
-                    insert_lazy(differences, (ic1, ic2), relative);
+        if len(trees) > 1:
+            # now calculate and parse the distances regarding the given tree-list
+            distances = parse_distances(calculate_distances(raxml, trees));
+            # for each mapping
+            for ((id1, id2), (absolute, relative)) in distances.iteritems():
+                # for each IC label for the tree of the first index
+                for ic1 in trees[id1][1]:
+                    # for each IC label for the tree of the second index
+                    for ic2 in trees[id2][1]:
+                        # insert the distance into the map for both ICs
+                        insert_lazy(differences, (ic1, ic2), relative);
     assert_dir('eval/res/histograms/data');
 
     # write each map entry to a file
@@ -336,7 +335,7 @@ def print_hist_model_per_ic(raxml, results):
                 combined[model] = init_zero_dict(ics)
             combined[model][ic] = count
     with open('eval/res/histograms/model_data/combined', 'w') as target_file:
-        target_file.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (replace_ic(ic)), ics)) + "\n");
+        target_file.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (ic), ics)) + "\n");
         target_file.write("\n".join(map(lambda (model, counts): model + " " + " ".join(map(str, map(itemgetter(1), sorted(counts.iteritems(), key=itemgetter(0))))), iter(sorted(combined.iteritems())))))
 
 

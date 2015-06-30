@@ -25,20 +25,14 @@
 
 #include "pltb_frontend.h"
 
-#define LAYOUT_DEFAULT 0
-#define LAYOUT_GNUPLOT 1
-
-#define LAYOUT LAYOUT_DEFAULT
-
-#if LAYOUT == LAYOUT_DEFAULT
-
 #define PRINT_HLINE(f) do {\
 		fprintf(f, "-----------------------------------------------------------------------------------------------------------\n");\
 	} while (0)
 #define PRINT_HEADER(f) do {\
 		fprintf(f, "   Model    |   Time [seconds]    |            |         I N F O R M A T I O N   C R I T E R I A\n");\
 		fprintf(f, "------------|---------------------| Max Log_e  |-----------------------------------------------------------\n");\
-		fprintf(f, " Symm.  | K |   CPU    |  REAL    | Likelihood |  AIC      |  AICc C   |  AICc RC  |  BIC C    |  BIC RC\n");\
+		fprintf(f, " Symm.  | K |   CPU    |  REAL    | Likelihood |  %s      |  %s   |  %s   |  %s    |  %s \n",\
+				get_IC_name_short(AIC), get_IC_name_short(AICc_C), get_IC_name_short(AICc_RC), get_IC_name_short(BIC_C), get_IC_name_short(BIC_RC));\
 	} while (0)
 #define PRINT_BODY_ROW(f, ...) do {\
 		fprintf(f, " %s | %u | %8.3f | %8.3f | %10.8g | %9.8g | %9.8g | %9.8g | %9.8g | %9.8g\n", __VA_ARGS__);\
@@ -68,47 +62,6 @@
 #define PRINT_TREE(repr) do {\
 		printf("%s", repr);\
 	} while (0)
-
-#elif LAYOUT == LAYOUT_GNUPLOT
-
-#define PRINT_HLINE(f) do {\
-		fprintf(f, "#----------------------------------------------------------------------------------------------------------\n");\
-	} while (0)
-#define PRINT_HEADER(f) do {\
-		fprintf(f, "#  Model    |   Time [seconds]    |            |         I N F O R M A T I O N   C R I T E R I A\n");\
-		fprintf(f, "#-----------|---------------------| Max Log_e  |-----------------------------------------------------------\n");\
-		fprintf(f, "Model   K     CPU       REAL      Likelihood    AIC        \"AICc C\"    \"AICc RC\"   \"BIC C\"    \"BIC RC\"\n");\
-	} while (0)
-#define PRINT_BODY_ROW(f, ...) do {\
-		fprintf(f, "\"%s\"  %u   %8.3f   %8.3f   %10.8g   %9.8g   %9.8g   %9.8g   %9.8g   %9.8g\n", __VA_ARGS__);\
-	} while (0)
-#define PRINT_SUMMARY(f, cpu, real, models_array) do {\
-		fprintf(f, "# Overview  | %8.1f | %8.1f |            ", cpu, real);\
-		for (unsigned i = 0; i < IC_MAX; i++) {\
-			fprintf(f, "| -> %6s ", models_array[i]);\
-		}\
-		fprintf(f, "\n");\
-	} while (0)
-#define PRINT_TREE_SEARCH_HEADER() do {\
-		printf("# Tree search for best model(s)\n");\
-	} while (0)
-#define PRINT_TREE_SEARCH_PRETEXT_BEGIN(model) do {\
-		printf("# Model %s [newick] (", model);\
-	} while (0)
-#define PRINT_TREE_SEARCH_PRETEXT_END() do {\
-		printf(")\n");\
-	} while (0)
-#define PRINT_TREE_SEARCH_PRETEXT_IC(name) do {\
-		printf("%s", name);\
-	} while (0)
-#define PRINT_TREE_SEARCH_PRETEXT_IC_SEP(name) do {\
-		printf(", %s", name);\
-	} while (0)
-#define PRINT_TREE(repr) do {\
-		printf("# %s", repr);\
-	} while (0)
-
-#endif
 
 static unsigned insert_unique_model(unsigned *models, unsigned len, unsigned model)
 {
@@ -192,13 +145,13 @@ char *get_IC_name_short(IC criterion)
 		case AIC:
 			return "AIC";
 		case AICc_C:
-			return "AICc C";
+			return "AICc-S";
 		case AICc_RC:
-			return "AICc RC";
+			return "AICc-M";
 		case BIC_C:
-			return "BIC C";
+			return "BIC-S";
 		case BIC_RC:
-			return "BIC RC";
+			return "BIC-M";
 		default:
 		case IC_MAX:
 			return "";
@@ -207,21 +160,7 @@ char *get_IC_name_short(IC criterion)
 
 char *get_IC_name_long(IC criterion)
 {
-	switch (criterion) {
-		case AIC:
-			return "AIC";
-		case AICc_C:
-			return "AICc (Columns)";
-		case AICc_RC:
-			return "AICc (Cells)";
-		case BIC_C:
-			return "BIC (Columns)";
-		case BIC_RC:
-			return "BIC (Cells)";
-		default:
-		case IC_MAX:
-			return "";
-	}
+	return get_IC_name_short(criterion);
 }
 
 void fprint_progress_begin(FILE *f)
