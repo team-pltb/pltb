@@ -12,6 +12,8 @@ CFLAGS=-c -O3 -std=gnu99 -Wall -Wextra -Wredundant-decls -Wswitch-default \
 -Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
 -Wstrict-prototypes -Wformat-nonliteral -Wundef
 
+$(shell perl -pi -e 's/#define\ MPI_MASTER_WORKER\ 0/#define\ MPI_MASTER_WORKER\ 1/g' src/frontend.c)
+
 .PHONY: default all clean
 
 default: avx
