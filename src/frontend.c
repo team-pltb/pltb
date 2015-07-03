@@ -25,7 +25,9 @@
 #include <assert.h>
 #include <unistd.h>
 
+#ifndef MPI_MASTER_WORKER
 #define MPI_MASTER_WORKER 1
+#endif
 
 #include "pltb.h"
 #include "models.h"

@@ -9,9 +9,7 @@ endif
 CFLAGS=-c -O3 -std=gnu99 -Wall -Wextra -Wredundant-decls -Wswitch-default \
 -Wimport -Wno-int-to-pointer-cast -Wbad-function-cast \
 -Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
--Wstrict-prototypes -Wformat-nonliteral -Wundef
-
-$(shell perl -pi -e 's/#define\ MPI_MASTER_WORKER\ 1/#define\ MPI_MASTER_WORKER\ 0/g' src/frontend.c)
+-Wstrict-prototypes -Wformat-nonliteral -Wundef -DMPI_MASTER_WORKER=0
 
 OBJECTS = $(patsubst src/%.c,src/%.o,$(filter-out $(wildcard src/mpi*.c),$(wildcard src/*.c)))
 HEADERS = $(filter-out $(wildcard src/mpi*.h),$(wildcard src/*.h)))
