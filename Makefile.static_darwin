@@ -1,0 +1,54 @@
+UNAME := $(shell uname)
+TARGET=pltb.out
+CC=gcc
+LFLAGS_STATIC=
+LFLAGS_DYNAMIC=-lm
+CFLAGS=-c -O3 -std=gnu99 -Wall -Wextra -Wredundant-decls -Wswitch-default \
+-Wimport -Wno-int-to-pointer-cast -Wbad-function-cast \
+-Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
+-Wstrict-prototypes -Wformat-nonliteral -Wundef -DMPI_MASTER_WORKER=0
+
+OBJECTS = $(patsubst src/%.c,src/%.o,$(filter-out $(wildcard src/mpi*.c),$(wildcard src/*.c)))
+HEADERS = $(filter-out $(wildcard src/mpi*.h),$(wildcard src/*.h)))
+
+.PHONY: default all clean
+default: avx
+
+clang: CC := clang
+clang: CFLAGS += -Weverything -pedantic
+clang: LFLAGS_STATIC += /usr/local/lib/libpll-avx.a
+clang: $(TARGET)
+
+avx: LFLAGS_STATIC += /usr/local/lib/libpll-avx.a
+avx: $(TARGET)
+
+avx-pthreads: LFLAGS_STATIC += /usr/local/lib/libpll-avx-pthreads.a 
+avx-pthreads: $(TARGET)
+
+sse3: LFLAGS_STATIC += /usr/local/lib/libpll-sse3.a
+sse3: $(TARGET)
+
+sse3-pthreads: LFLAGS_STATIC += /usr/local/lib/libpll-sse3-pthreads.a
+sse3-pthreads: $(TARGET)
+
+debug: CFLAGS += -DDEBUG -g -O0
+debug: CFLAGS := $(filter-out -O3,$(CFLAGS))
+debug: LFLAGS_STATIC += /usr/local/lib/libpll-avx.a
+debug: $(TARGET)
+
+debug-sse3: CFLAGS += -DDEBUG -g -O0
+debug-sse3: CFLAGS := $(filter-out -O3,$(CFLAGS))
+debug-sse3: LFLAGS_STATIC += /usr/local/lib/libpll-sse3.a
+debug-sse3: $(TARGET)
+
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+.PRECIOUS: $(TARGET) $(OBJECTS)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) $(LFLAGS_STATIC) $(LFLAGS_DYNAMIC) -o $@
+
+clean:
+	-rm -f src/*.o
+	-rm -f $(TARGET)
