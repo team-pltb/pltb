@@ -41,8 +41,9 @@ import argparse
 #
 # The following invariant is assured:
 # If a tuple with the GTR model exists, it is the first tuple of the returned list.
-def parse_trees(pltb_result_file):
-    print(pltb_result_file);
+def parse_trees(pltb_result_file, print_progress = False):
+    if print_progress:
+        print(pltb_result_file);
     # start with an empty list of tuples
     trees=[]
 
@@ -177,12 +178,13 @@ def parse_distances(distance_result):
 # and prints a sorted list over all found relative distances.
 # Each printed distance value is associated with the corresponding result file
 # it came from and the two models which's comparison lead to this value.
-def print_sorted_distances(raxml, results):
+def print_sorted_distances(raxml, results, print_progress = False):
     # this list will contain all distances in the following tuple format:
     # [ (pltb_result_file, model_A, model_B, relative_distance), ... ]
     all_distances = []
     for f in results:
-        print("Processing %s" % (f));
+        if print_progress:
+            print("Processing %s" % (f));
         # read the trees from the pltb result file
         trees = parse_trees(f);
         # calculate and parse the distances
@@ -209,24 +211,21 @@ def print_variance(raxml, results):
     for f in results:
         all_relative_distances = [];
 
-        # Redirect stdout because there is an unwanted print() in a called function.
-        # The print() is only unwanted from within this function.
-        old_stdout = sys.stdout;
-        sys.stdout = None;
         trees = parse_trees(f);
-        sys.stdout = old_stdout;
 
         distances = parse_distances(calculate_distances(raxml, trees));
         for ((id1, id2), (absolute, relative)) in distances.iteritems():
-            all_relative_distances.append((relative));
+            all_relative_distances.append(relative);
         mean_relative_distance = 0;
-        if(len(all_relative_distances) > 0):
+        if (len(all_relative_distances) > 0):
             mean_relative_distance = sum(all_relative_distances) / len(all_relative_distances);
         variance = 0;
         for relative in all_relative_distances:
             variance += pow(relative - mean_relative_distance, 2);
-        if(len(all_relative_distances) > 0):
+        if (len(all_relative_distances) > 0):
             variance = variance / len(all_relative_distances);
+        else:
+            variance = float('nan')
         all_variances.append((f, variance));
     all_variances = sorted(all_variances, key=itemgetter(1), reverse = True);
     for (f, variance) in all_variances:
