@@ -200,6 +200,37 @@ def print_sorted_distances(raxml, results):
     print("{:<66} | {:^15} | {}".format("Result file", "Models", "Relative Distance"));
     print("Validation: We processed %d distances" % (len(all_distances)))
 
+# This function takes the RAxML binary, an list of (PLTB) result files
+# and prints a sorted list over all variances of the distances of each file.
+# Each printed distance value is associated with the corresponding result file
+# it came from.
+def print_variance(raxml, results):
+    all_variances = [];
+    for f in results:
+        all_relative_distances = [];
+
+        # Redirect stdout because there is an unwanted print() in a called function.
+        # The print() is only unwanted from within this function.
+        old_stdout = sys.stdout;
+        sys.stdout = None;
+        trees = parse_trees(f);
+        sys.stdout = old_stdout;
+
+        distances = parse_distances(calculate_distances(raxml, trees));
+        for ((id1, id2), (absolute, relative)) in distances.iteritems():
+            all_relative_distances.append((relative));
+        mean_relative_distance = 0;
+        if(len(all_relative_distances) > 0):
+            mean_relative_distance = sum(all_relative_distances) / len(all_relative_distances);
+        variance = 0;
+        for relative in all_relative_distances:
+            variance += pow(relative - mean_relative_distance, 2);
+        variance = variance / len(all_relative_distances);
+        all_variances.append((f, variance));
+    all_variances = sorted(all_variances, key=itemgetter(1), reverse = True);
+    for (f, variance) in all_variances:
+        print(variance, f);
+
 # This function takes a dictionary (a map), two information criterium labels and a (distance) value.
 # The dictionary will now map the tuple containing both labels to a list containing various distances.
 #
@@ -341,7 +372,7 @@ def print_hist_model_per_ic(raxml, results):
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
 
-actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist_ic, 'hist-model': print_hist_model, 'hist-model-per-ic': print_hist_model_per_ic})
+actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist_ic, 'hist-model': print_hist_model, 'hist-model-per-ic': print_hist_model_per_ic, 'variance': print_variance})
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
 parser.add_argument('action', choices=actions, help='the operation to conduct');
