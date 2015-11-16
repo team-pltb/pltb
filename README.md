@@ -28,9 +28,11 @@ Here is a list of available make targets:
 - `default` implies target `avx`
 - `clean` standard cleanup
 
-Note that the first 6 targets use gcc with optimization level `O3`, C language standard gnu99 and very restrictive compiler warnings enabled.
-For the exact flags take a look at the Makefile.
-All builds use mpicc to accomplish the actual compilation against your installed MPI implementation.
+Note that the first 6 targets use gcc with optimization level `O3`, C language standard `gnu99` and very restrictive compiler warnings enabled.
+For the exact flags take a look at the respective Makefile.
+All builds use the wrapper `mpicc` to accomplish actual compilation against your installed MPI implementation.
+
+We further provide two additional Makefiles for static compilation against MPI and PLL.
 
 ## Usage
 
