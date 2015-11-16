@@ -225,7 +225,8 @@ def print_variance(raxml, results):
         variance = 0;
         for relative in all_relative_distances:
             variance += pow(relative - mean_relative_distance, 2);
-        variance = variance / len(all_relative_distances);
+        if(len(all_relative_distances) > 0):
+            variance = variance / len(all_relative_distances);
         all_variances.append((f, variance));
     all_variances = sorted(all_variances, key=itemgetter(1), reverse = True);
     for (f, variance) in all_variances:
