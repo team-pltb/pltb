@@ -92,7 +92,7 @@ def parse_trees(pltb_result_file, print_progress = False):
 
 # This function takes a list of parsed pltb tuples (see parse_trees) and the RAxML binary
 # to calculate the RF distances (using RAxML) and to then return the exact output of RAxML.
-def calculate_distances(raxml, trees):
+def calculate_distances_with_raxml(raxml, trees):
     # work in temporary directory (e.g. /tmp/pltb-eval-134hba2/)
     tmpdir = tempfile.mkdtemp(prefix = 'pltb-eval-');
 
@@ -143,7 +143,7 @@ def calculate_distances(raxml, trees):
 
     return distance_result;
 
-# This function takes the exact output of a RAxML RF-distance calculation run (see calculate_distances)
+# This function takes the exact output of a RAxML RF-distance calculation run (see calculate_distances_with_raxml)
 # and returns a map with the following structure:
 # (index1, index2) -> (absolute_distance, relative_distance)
 #
@@ -174,6 +174,13 @@ def parse_distances(distance_result):
         pass # fine
     return distances;
 
+def calc_distances(raxml, trees):
+    if (len(trees) > 1):
+        return parse_distances(calculate_distances_with_raxml(raxml, trees))
+    else:
+        return {(0,0): (0,0)}
+
+
 # This function takes the RAxML binary, an list of (PLTB) result files
 # and prints a sorted list over all found relative distances.
 # Each printed distance value is associated with the corresponding result file
@@ -188,7 +195,7 @@ def print_sorted_distances(raxml, results, print_progress = False):
         # read the trees from the pltb result file
         trees = parse_trees(f);
         # calculate and parse the distances
-        distances = parse_distances(calculate_distances(raxml, trees));
+        distances = calc_distances(raxml, trees);
         # for each pairwise-distance between two ids (the ids refer to the trees-list)
         for ((id1, id2), (absolute, relative)) in distances.iteritems():
             # insert an entry in the format described above
@@ -213,7 +220,7 @@ def print_variance(raxml, results):
 
         trees = parse_trees(f);
 
-        distances = parse_distances(calculate_distances(raxml, trees));
+        distances = calc_distances(raxml, trees);
         for ((id1, id2), (absolute, relative)) in distances.iteritems():
             all_relative_distances.append(relative);
         mean_relative_distance = 0;
@@ -286,7 +293,7 @@ def print_hist_ic(raxml, results):
 
         if len(trees) > 1:
             # now calculate and parse the distances regarding the given tree-list
-            distances = parse_distances(calculate_distances(raxml, trees));
+            distances = calc_distances(raxml, trees);
             # for each mapping
             for ((id1, id2), (absolute, relative)) in distances.iteritems():
                 # for each IC label for the tree of the first index
