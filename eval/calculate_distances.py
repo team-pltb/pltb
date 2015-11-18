@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.4
 
 # This file is part of PLTB.
 # Copyright (C) 2015 Michael Hoff, Stefan Orf and Benedikt Riehm
@@ -9,7 +9,7 @@
 # (at your option) any later version.
 #
 # PLTB is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# but WITHOUT ANY WARRANTY without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
@@ -19,375 +19,202 @@
 from __future__ import print_function
 
 import sys
-import re
 import os
-import operator
 from subprocess import check_output, CalledProcessError, Popen
 from operator import itemgetter, attrgetter, methodcaller
 import tempfile
 import argparse
 
-# This function takes a file(name) containing the results of a PLTB run.
-# A list of tuples of the following form is returned:
-# [(MODEL_STRING, [IC1, IC2, IC3, ...], ENCODED_TREE), ...]
-#
-# Each tuple contains...
-# 0: MODEL_STRING, e.g. "012345" (GTR)
-# 1: [IC1, IC2, IC3, ...], e.g. ["AIC C", "BIC C", ...]
-# 2: ENCODED_TREE, the newick tree for this model
-# The second parameter contains all ICs that chose this model string.
-#
-# Thus, this returned list is basically the parsed "tree search" output of PLL.
-#
-# The following invariant is assured:
-# If a tuple with the GTR model exists, it is the first tuple of the returned list.
-def parse_trees(pltb_result_file, print_progress = False):
-    if print_progress:
-        print(pltb_result_file);
-    # start with an empty list of tuples
-    trees=[]
+from functools import reduce
+from itertools import product
+import operator
 
-    # read file line by line
-    with open(pltb_result_file) as source:
-        line_iter = iter(source);
-        try:
-            while True:
-                # search for "Tree search..." to start parsing trees
-                line = line_iter.next();
-                if (re.match('^Tree search.*$', line) != None):
-                    break;
-        except StopIteration:
-            # last line reached and never found a tree
-            print("Error: No trees found.");
-            exit(1);
-        # "Tree search..." line found. start parsing trees
-        try:
-            while True:
-                line = line_iter.next();
-                result = re.match('^# Model ([0-5]{6}) \[newick\] \(([a-zA-Z,\s-]*)\)$', line);
-                if (result != None and result.group(1) != None and result.group(2) != None):
-                    try:
-                        # add a tuple, note the line_iter.next(), which takes the next line and saves it as the newick tree
-                        # thus always two lines are consumed here.
-                        trees.append((result.group(1), result.group(2).split(', '), line_iter.next()));
-                    except StopIteration:
-                        print("Error: " + result.group(1) + " has no tree.");
-                        exit(2);
-        except StopIteration:
-            pass # fine
+from lib.pltb_data import GTR_MODEL, GTR_SELECTOR_LABEL, Selector, TreeEntry
+from lib.pltb_result_parser import parse_trees_from_result_file
+from lib.distance_calculator import calc_distances
 
-    # move GTR to front of list (if contained)
-    for i in range(len(trees)):
-        if (trees[i][0] == "012345"): # GTR
-            trees.insert(0, trees.pop(i));
-            break;
+def parse_trees_and_calc_distances(raxml, result_file):
+    trees = parse_trees_from_result_file(result_file)
+    distances = calc_distances(raxml, trees)
+    return (trees, distances)
 
-    if (len(trees) == 0):
-        print("Error: No tree found.");
-        exit(1);
-    if (trees[0][0] != "012345"):
-        print("Warning: GTR not included.");
+### VARIANCE
 
-    return trees;
+def calc_mean(values):
+    if not values:
+        raise Exception("Empty list has no mean")
+    return sum(values) / len(values)
 
-# This function takes a list of parsed pltb tuples (see parse_trees) and the RAxML binary
-# to calculate the RF distances (using RAxML) and to then return the exact output of RAxML.
-def calculate_distances_with_raxml(raxml, trees):
-    # work in temporary directory (e.g. /tmp/pltb-eval-134hba2/)
-    tmpdir = tempfile.mkdtemp(prefix = 'pltb-eval-');
+def calc_variance(values, ref = None):
+    if not values:
+        raise Exception("Empty list has no variance")
+    if ref == None:
+        ref = calc_mean(values)
+    return sum(map(lambda v: pow(v - ref, 2), values)) / len(values)
 
-    # RAxML requires all tree to be provided line-by-line in a single text-file.
+def create_relative_distance_variance_for_file(raxml, result_file):
+    (_, distances) = parse_trees_and_calc_distances(raxml, result_file)
+    return calc_variance([rel_distance for (_,rel_distance) in distances.values()])
 
-    # create that temporary (tree-)file
-    tmp_tree_file_path = os.path.join(tmpdir, "tree_file");
+def create_wrapped_relative_distance_variance_for_file(raxml, result_file):
+    return (result_file, create_relative_distance_variance_for_file(raxml, result_file))
 
-    # write trees to file line-by-line
-    with open(tmp_tree_file_path, 'w') as tmp_tree_file:
-        # iterate over the given tuples, extracting and writing only the last element (the newick tree string) for each entry
-        for (_, _, tree) in trees:
-            # writes single line (line feed is inserted automatically)
-            tmp_tree_file.write(tree);
+def create_relative_distance_variances(raxml, results):
+    return [create_wrapped_relative_distance_variance_for_file(raxml, f) for f in results]
 
-    try:
-        # call raxml: -w - working directory (our temporary dir), -n (obligatory run-) suffix, ...
-        # for the other arguments please refer to the RAxML documentation
-        check_output(["%s -m GTRGAMMAX -f r -z %s -n run -w %s" % (raxml, tmp_tree_file_path, tmpdir)], shell=True);
-        # RAxML outputs two files in the temporary folder: RAxML_info.run and RAxML_RF-Distances.run
-    except CalledProcessError as e:
-        print("RAxML failed.");
-        print(e.output);
-        exit(1);
-    else:
-        # call successful
+### MODEL-PAIRWISE DISTANCES
 
-        # read distances file
-        distance_file_path = os.path.join(tmpdir, 'RAxML_RF-Distances.run');
-        with open(distance_file_path) as distance_file:
-            # distance_result will contain the exact output of RAxML regarding the RF-distance calculation
-            distance_result = distance_file.read();
-        try:
-            # remove distances file
-            os.remove(distance_file_path);
-        except IOError as e:
-            print("Error: Unable to remove temporary file " + distance_file_path);
-            exit(1);
-        finally:
-            # remove info file
-            os.remove(os.path.join(tmpdir, 'RAxML_info.run'));
-        # all RAxML files removed
-    finally:
-        # remove our tree file
-        os.remove(tmp_tree_file_path)
-        # remove the temporary directory
-        os.rmdir(tmpdir);
+def create_model_pairwise_relative_distances_for_file(raxml, result_file):
+    trees, distances = parse_trees_and_calc_distances(raxml, result_file)
+    return [(result_file, trees[i].model, trees[j].model, rel_dist) for (i,j), (_,rel_dist) in distances.items()]
 
-    return distance_result;
+# [ (result_file, model_A, model_B, relative_distance), ... ]
+# for all result files, all pairwise distances
+def create_model_pairwise_relative_distances(raxml, results):
+    return reduce(operator.concat, [create_model_pairwise_relative_distances_for_file(raxml, f) for f in results], [])
 
-# This function takes the exact output of a RAxML RF-distance calculation run (see calculate_distances_with_raxml)
-# and returns a map with the following structure:
-# (index1, index2) -> (absolute_distance, relative_distance)
-#
-# This map has to be interpreted in the context of a pltb result list (see parse_trees).
-# In such a list, each index represents a tree.
-# With the map returned by this function each index-combination, thus every tree-combination,
-# gets assigned a relative and an absolute distance value (as calculated by RAxML)
-#
-# Arbitrary example:
-# trees = [ ("000000", ["AIC"], "..."), ("012345", ["BIC"], "...") ]
-# distances[(0,1)] = (10.0, 0.15)
-# Thus, the tree for "000000" and the tree for "012345" differ by 15% and an absolute amount of 10.
-def parse_distances(distance_result):
-    # iterator for the lines in distance_result
-    line_iter = iter(distance_result.split('\n'));
-    # start with an empty map
-    distances = dict();
-    try:
-        while True:
-            line = line_iter.next();
-            result = re.match('^([0-9]) ([0-9]): ([0-9]+) ([0-9\.]+)$', line);
-            if (result == None):
-                # if the match fails, we are done.
-                break;
-            # insert the parsed ids and distance values in the map: (id1, id2) -> (absolute, relative)
-            distances[(int(result.group(1)), int(result.group(2)))] = (float(result.group(3)), float(result.group(4)));
-    except StopIteration:
-        pass # fine
-    return distances;
+### IC-PAIRWISE DISTANCES
 
-def calc_distances(raxml, trees):
-    if (len(trees) > 1):
-        return parse_distances(calculate_distances_with_raxml(raxml, trees))
-    else:
-        return {(0,0): (0,0)}
+def create_empty_ic_list_matrix():
+    return create_initialized_dict(product(list(Selector), list(Selector)), lambda: [])
+
+def create_initialized_dict(keys, init):
+    matrix = dict()
+    for k in keys:
+        matrix[k] = init()
+    return matrix
+
+def create_relative_distance_matrix_for_ics_for_file(raxml, result_file):
+    trees, distances = parse_trees_and_calc_distances(raxml, result_file)
+
+    if Selector.GTR not in trees[0].ics:
+        trees[0].ics.append(Selector.GTR)
+
+    matrix = create_empty_ic_list_matrix()
+    for (i,j), (_, rel_dist) in distances.items():
+        for ic1, ic2 in product(trees[i].ics, trees[j].ics):
+            matrix[(ic1, ic2)].append(rel_dist)
+    return matrix
+
+def merge_list_matrix(left_matrix, right_matrix):
+    matrix = create_empty_ic_list_matrix()
+    for key, values in left_matrix.items():
+        matrix[key].extend(values)
+    for key, values in right_matrix.items():
+        matrix[key].extend(values)
+    return matrix
+
+def create_relative_distance_matrix_for_ics(raxml, results):
+    return reduce(merge_list_matrix, map(lambda f: create_relative_distance_matrix_for_ics_for_file(raxml, f), results), create_empty_ic_list_matrix())
 
 
-# This function takes the RAxML binary, an list of (PLTB) result files
-# and prints a sorted list over all found relative distances.
-# Each printed distance value is associated with the corresponding result file
-# it came from and the two models which's comparison lead to this value.
-def print_sorted_distances(raxml, results, print_progress = False):
-    # this list will contain all distances in the following tuple format:
-    # [ (pltb_result_file, model_A, model_B, relative_distance), ... ]
-    all_distances = []
-    for f in results:
-        if print_progress:
-            print("Processing %s" % (f));
-        # read the trees from the pltb result file
-        trees = parse_trees(f);
-        # calculate and parse the distances
-        distances = calc_distances(raxml, trees);
-        # for each pairwise-distance between two ids (the ids refer to the trees-list)
-        for ((id1, id2), (absolute, relative)) in distances.iteritems():
-            # insert an entry in the format described above
-            # note the lookup in the trees list, first with the index
-            # and then with 0, which means the first tuple entry (hence, the model string. see parse_trees)
-            all_distances.append((f, trees[id1][0], trees[id2][0], relative));
+### PRINTING AND FORMATTING FUNCTIONS (API)
+
+def print_sorted_model_pairwise_distances(raxml, results, descending = True):
     # sort the whole list using the third tuple element (the distance)
-    all_distances = sorted(all_distances, key=itemgetter(3))
-    for d in all_distances:
-        print("{:<66}   {}   {}   {}".format(*d));
-    print("{:<66} | {:^15} | {}".format("Result file", "Models", "Relative Distance"));
-    print("Validation: We processed %d distances" % (len(all_distances)))
+    all_distances = sorted(create_model_pairwise_relative_distances(raxml, results), key=itemgetter(3), reverse = descending)
+    print("{:<80} | {:^15} | {}".format("Result file", "Models", "Relative Distance"))
+    for (result_file, modelA, modelB, rel_dist) in all_distances:
+        print("{:<80}   {}   {}   {}".format(result_file, modelA, modelB, rel_dist))
 
-# This function takes the RAxML binary, an list of (PLTB) result files
-# and prints a sorted list over all variances of the distances of each file.
-# Each printed distance value is associated with the corresponding result file
-# it came from.
-def print_variance(raxml, results):
-    all_variances = [];
-    for f in results:
-        all_relative_distances = [];
 
-        trees = parse_trees(f);
-
-        distances = calc_distances(raxml, trees);
-        for ((id1, id2), (absolute, relative)) in distances.iteritems():
-            all_relative_distances.append(relative);
-        mean_relative_distance = 0;
-        if (len(all_relative_distances) > 0):
-            mean_relative_distance = sum(all_relative_distances) / len(all_relative_distances);
-        variance = 0;
-        for relative in all_relative_distances:
-            variance += pow(relative - mean_relative_distance, 2);
-        if (len(all_relative_distances) > 0):
-            variance = variance / len(all_relative_distances);
-        else:
-            variance = float('nan')
-        all_variances.append((f, variance));
-    all_variances = sorted(all_variances, key=itemgetter(1), reverse = True);
-    for (f, variance) in all_variances:
-        print(variance, f);
-
-# This function takes a dictionary (a map), two information criterium labels and a (distance) value.
-# The dictionary will now map the tuple containing both labels to a list containing various distances.
-#
-# The tuple (the key) containing both labels is first normalized using canonical ordering.
-# Except that, if ic1 or ic2 is 'extra' it has to be the second key entry.
-# This is important, as the inserted distance value has commutative semantics.
-#
-# The list for the values is created lazily on demand.
-def insert_lazy(d, (ic1, ic2), value):
-    if ((ic1 >= ic2) and (ic1 != 'extra')) or (ic2 == 'extra'):
-        key = (ic2, ic1);
-    else:
-        key = (ic1, ic2);
-    if key in d:
-        d[key].append(value);
-    else:
-        d[key] = [value];
-
-# Prepare the given IC label for printing.
-# Current semantics: Delete whitespaces and convert to lowercase.
-def serialize_ic(ic):
-    return ic.replace(' ', '').replace('-', '').lower();
+def print_sorted_datasetwise_variances(raxml, results, descending = True):
+    variances = sorted(create_relative_distance_variances(raxml, results), key=itemgetter(1), reverse = descending)
+    print("{:<80} | {}".format("Result file", "Variance"))
+    for (result_file, variance) in variances:
+        print("{:<80}   {}".format(result_file, variance))
 
 # Make sure the given path exists.
 # Creates all folders on the path if required.
 def assert_dir(path):
     if not os.path.exists(path):
-        os.makedirs(path);
+        os.makedirs(path)
 
 # This function takes the RAxML binary and a list of PLTB result files
 # to write files in eval/res/histograms/data for histogram generation.
-def print_hist_ic(raxml, results):
-    print("Processing %d results" % (len(results)));
-    # empty map which will contain mappings of the following format:
-    # (ic1, ic2) -> [distance_value1, distance_value2, ...]
-    differences=dict()
+def write_relative_distances_for_selector_pairs(raxml, results):
+    differences = create_relative_distance_matrix_for_ics(raxml, results)
+    unique_ic_pairs = [(ic1, ic2) for ic1, ic2 in differences.keys() if ic1 < ic2]
+
+    assert_dir('eval/res/histograms/data')
+    print("Writing all distances for each selector combination in a separate data file...")
+    for ic1, ic2 in unique_ic_pairs:
+        relatives = differences[(ic1, ic2)]
+        filename = 'eval/res/histograms/data/%s-%s' % (ic1.serialize(), ic2.serialize())
+        write_formatted_items(filename, "%d", relatives, lambda _: print("... {:^6} entries".format(len(relatives))))
+
+def write_formatted_items(filename, formatstr, items, prewrite = None):
+    print("Writing {}".format(filename))
+    with open(filename, 'w') as target_file:
+        if prewrite:
+            prewrite(target_file)
+        target_file.write("\n".join(map(lambda item: formatstr % item, items)) + "\n")
+
+def write_model_selection_histogram(raxml, results):
+    print("Counting each model selection (ignoring GTR if forced by 'extra')")
+
+    models = dict()
     for f in results:
-        # take a single result file f
-
-        # parse the contained trees
-        trees = parse_trees(f);
-
-        # virtually insert a 'extra' label if GTR was chosen by another model also.
-        # thus, a tree labeled 'extra' always exists.
-        if 'extra' not in trees[0][1]:
-            # it is assumed here, that the first tree is always corresponding to GTR.
-            trees[0][1].append('extra');
-
-        # for all IC labels which chose one model together insert the distance 0.0 in the map
-        for tree in trees:
-            for key in [(ic1, ic2) for ic1 in tree[1] for ic2 in tree[1] if ic1 < ic2]:
-                insert_lazy(differences, key, 0.0);
-
-        if len(trees) > 1:
-            # now calculate and parse the distances regarding the given tree-list
-            distances = calc_distances(raxml, trees);
-            # for each mapping
-            for ((id1, id2), (absolute, relative)) in distances.iteritems():
-                # for each IC label for the tree of the first index
-                for ic1 in trees[id1][1]:
-                    # for each IC label for the tree of the second index
-                    for ic2 in trees[id2][1]:
-                        # insert the distance into the map for both ICs
-                        insert_lazy(differences, (ic1, ic2), relative);
-    assert_dir('eval/res/histograms/data');
-
-    # write each map entry to a file
-    for ((ic1, ic2), relatives) in sorted(differences.iteritems()):
-        print("# %s vs %s: %d" % (ic1, ic2, len(relatives)));
-        with open('eval/res/histograms/data/%s-%s' % (serialize_ic(ic1), serialize_ic(ic2)), 'w') as target_file:
-            target_file.write("\n".join(map(str, relatives)) + "\n");
-
-def print_hist_model(raxml, results):
-    print("Processing %d results" % (len(results)));
-    print("Counting models chosen by several ICs per dataset only once");
-    models=dict()
-    for f in results:
-        # take a single result file f
-
-        # parse the contained trees
-        trees = parse_trees(f);
-        for tree in trees:
-            model = tree[0]
-            if model == "012345" and "extra" in tree[1]:
+        for tree in parse_trees_from_result_file(f):
+            if tree.ics == [Selector.GTR]:
                 continue
-            if model not in models:
-                models[model] = 0
-            models[model] += 1
+            if tree.model not in models:
+                models[tree.model] = 0
+            models[tree.model] += 1
+
+    assert_dir('eval/res/histograms/model_data')
+    write_formatted_items('eval/res/histograms/model_data/overall', "%s %d", models.items())
+
+def write_model_selection_histogram_per_ic(raxml, results):
+    # ic_models: ic -> (model -> count)
+    ic_models = dict()
+    for f in results:
+        for tree in parse_trees_from_result_file(f):
+            if tree.ics == [Selector.GTR]:
+                continue
+            for ic in tree.ics:
+                if ic not in ic_models:
+                    ic_models[ic] = dict()
+                if tree.model not in ic_models[ic]:
+                    ic_models[ic][tree.model] = 0
+                ic_models[ic][tree.model] += 1
 
     assert_dir('eval/res/histograms/model_data')
 
-    # write each map entry to a file
-    with open('eval/res/histograms/model_data/overall', 'w') as target_file:
-        target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n")
-
-def init_zero_dict(ics):
-    d = dict()
-    for ic in ics:
-        d[ic] = 0
-    return d
-
-def print_hist_model_per_ic(raxml, results):
-    print("Processing %d results" % (len(results)));
-
-    # ic_models: ic -> (model -> count)
-    ic_models=dict()
-    for f in results:
-
-        trees = parse_trees(f);
-        for tree in trees:
-            model = tree[0]
-            for ic in tree[1]:
-                if model == "012345" and ic == "extra":
-                    continue
-                if ic not in ic_models:
-                    ic_models[ic] = dict()
-                if model not in ic_models[ic]:
-                    ic_models[ic][model] = 0
-                ic_models[ic][model] += 1
-
-    assert_dir('eval/res/histograms/model_data');
-
-    for (ic, models) in ic_models.iteritems():
-        with open('eval/res/histograms/model_data/%s' % (serialize_ic(ic)), 'w') as target_file:
-            target_file.write("\n".join(map(lambda entry: "%s %d" % entry, models.iteritems())) + "\n")
+    for ic, models in ic_models.items():
+        write_formatted_items('eval/res/histograms/model_data/{}'.format(ic.serialize()), "%s %d", models.items())
 
     ics = sorted(ic_models.keys())
 
     combined = dict()
-    for (ic, models) in ic_models.iteritems():
-        for (model, count) in models.iteritems():
+    for ic, models in ic_models.items():
+        for model, count in models.items():
             if model not in combined:
-                combined[model] = init_zero_dict(ics)
+                combined[model] = create_initialized_dict(ics, lambda: 0)
             combined[model][ic] = count
-    with open('eval/res/histograms/model_data/combined', 'w') as target_file:
-        target_file.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (ic), ics)) + "\n");
-        target_file.write("\n".join(map(lambda (model, counts): model + " " + " ".join(map(str, map(itemgetter(1), sorted(counts.iteritems(), key=itemgetter(0))))), iter(sorted(combined.iteritems())))))
 
-
-parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
-
-actions=dict({'print-sorted': print_sorted_distances, 'hist-ic-ic': print_hist_ic, 'hist-model': print_hist_model, 'hist-model-per-ic': print_hist_model_per_ic, 'variance': print_variance})
+    write_formatted_items('eval/res/histograms/model_data/combined', "%s",
+                          [model + " " + " ".join(map(lambda ic: str(ic_counts[ic]), ics)) for model, ic_counts in sorted(combined.items())],
+                          lambda f: f.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (ic), ics)) + "\n"))
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
-parser.add_argument('action', choices=actions, help='the operation to conduct');
+
+actions = dict(
+    { 'model-pairwise-distances': print_sorted_model_pairwise_distances
+     , 'ic-pairwise-distances': write_relative_distances_for_selector_pairs
+     , 'model-selection': write_model_selection_histogram
+     , 'model-selection-per-ic': write_model_selection_histogram_per_ic
+     , 'dataset-variances': print_sorted_datasetwise_variances
+     }
+)
+
+parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
+parser.add_argument('action', choices=actions, help='the operation to conduct')
 parser.add_argument('results', type=str, nargs='+', help='the pltb results')
 parser.add_argument('--raxml', dest='raxml', default='raxmlHPC-SSE3', help='RAxML binary for RF-distance calculation. default: raxmlHPC-SSE3')
 
-args = parser.parse_args();
+args = parser.parse_args()
 
-actions[args.action](args.raxml, args.results);
+actions[args.action](args.raxml, args.results)
 
-exit(0);
+exit(0)
