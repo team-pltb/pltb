@@ -144,7 +144,7 @@ def write_relative_distances_for_selector_pairs(raxml, results):
     for ic1, ic2 in unique_ic_pairs:
         relatives = differences[(ic1, ic2)]
         filename = 'eval/res/histograms/data/%s-%s' % (ic1.serialize(), ic2.serialize())
-        write_formatted_items(filename, "%d", relatives, lambda _: print("... {:^6} entries".format(len(relatives))))
+        write_formatted_items(filename, "%f", relatives, lambda _: print("... {:^6} entries".format(len(relatives))))
 
 def write_formatted_items(filename, formatstr, items, prewrite = None):
     print("Writing {}".format(filename))
