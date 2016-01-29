@@ -94,6 +94,9 @@ def create_relative_distance_matrix_for_ics_for_file(raxml, result_file):
     for (i,j), (_, rel_dist) in distances.items():
         for ic1, ic2 in product(trees[i].ics, trees[j].ics):
             matrix[(ic1, ic2)].append(rel_dist)
+            # ensure symmetry
+            if ic1 != ic2:
+                matrix[(ic2, ic1)].append(rel_dist)
     return matrix
 
 def merge_list_matrix(left_matrix, right_matrix):
