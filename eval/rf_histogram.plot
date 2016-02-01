@@ -44,5 +44,5 @@ set output trg
 set grid ytics lc rgb "#bbbbbb" lw 1 lt 0
 set grid xtics lc rgb "#bbbbbb" lw 1 lt 0
 
-plot 'tmp' u ($1):(100*$2/1476):(0.5) w boxes # , \
+plot 'tmp' u ($1):(100*$2/1368):(0.5) w boxes # , \
 #     ''    u ($1):(100*$2/336*1.5):($2) with labels
