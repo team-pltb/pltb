@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import sys
 import os
+import re
 from subprocess import check_output, CalledProcessError, Popen
 from operator import itemgetter, attrgetter, methodcaller
 import tempfile
@@ -202,8 +203,29 @@ def write_model_selection_histogram_per_ic(raxml, results):
             combined[model][ic] = count
 
     write_formatted_items('eval/res/histograms/model_data/combined', "%s",
-                          [model + " " + " ".join(map(lambda ic: str(ic_counts[ic]), ics)) for model, ic_counts in sorted(combined.items())],
+                          [format_model_string(model) + " " + " ".join(map(lambda ic: str(ic_counts[ic]), ics)) for model, ic_counts in sorted(combined.items())],
                           lambda f: f.write("Model " + " ".join(map(lambda ic: "\"%s\"" % (ic), ics)) + "\n"))
+
+
+def count_same_model_selections_between_ics(raxml, results):
+    d = create_initialized_dict(product(list(Selector),list(Selector)), lambda: 0);
+
+    for f in results:
+        trees = parse_trees_from_result_file(f)
+        if Selector.GTR not in trees[0].ics:
+            trees[0].ics.append(Selector.GTR)
+        for tree in trees:
+            for k in product(tree.ics, tree.ics):
+                d[k] += 1;
+
+    write_formatted_items('eval/res/histograms/model_data/same_models_between_ics', "%s", [k1.serialize() + " " + k2.serialize() + " " + str(d[(k1,k2)]) for k1, k2 in d.keys() if k1 < k2]);
+
+
+def format_model_string(model0):
+    rep = {"0":"1", "1":"2", "2":"3", "3":"4", "4":"5", "5":"6"}
+    rep = dict((re.escape(k), v) for k, v in rep.items())
+    pattern = re.compile("|".join(rep.keys()))
+    return pattern.sub(lambda m: rep[re.escape(m.group(0))], model0)
 
 parser = argparse.ArgumentParser(description='Calculate pairwise RF-distances given a pltb result.')
 
@@ -213,6 +235,7 @@ actions = dict(
      , 'model-selection': write_model_selection_histogram
      , 'model-selection-per-ic': write_model_selection_histogram_per_ic
      , 'dataset-variances': print_sorted_datasetwise_variances
+     , 'count_same_model_selections_between_ics': count_same_model_selections_between_ics
      }
 )
 
