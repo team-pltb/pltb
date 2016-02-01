@@ -91,7 +91,13 @@ def create_relative_distance_matrix_for_ics_for_file(raxml, result_file):
         trees[0].ics.append(Selector.GTR)
 
     matrix = create_empty_ic_list_matrix()
+
+    for tree in trees:
+        for ic1, ic2 in product(tree.ics, tree.ics):
+            matrix[(ic1,ic2)].append(0)
     for (i,j), (_, rel_dist) in distances.items():
+        if i == j:
+            continue
         for ic1, ic2 in product(trees[i].ics, trees[j].ics):
             matrix[(ic1, ic2)].append(rel_dist)
             # ensure symmetry
@@ -137,11 +143,10 @@ def assert_dir(path):
 # to write files in eval/res/histograms/data for histogram generation.
 def write_relative_distances_for_selector_pairs(raxml, results):
     differences = create_relative_distance_matrix_for_ics(raxml, results)
-    unique_ic_pairs = [(ic1, ic2) for ic1, ic2 in differences.keys() if ic1 < ic2]
 
     assert_dir('eval/res/histograms/data')
     print("Writing all distances for each selector combination in a separate data file...")
-    for ic1, ic2 in unique_ic_pairs:
+    for ic1, ic2 in [(ic1, ic2) for ic1, ic2 in differences.keys() if ic1 < ic2]:
         relatives = differences[(ic1, ic2)]
         filename = 'eval/res/histograms/data/%s-%s' % (ic1.serialize(), ic2.serialize())
         write_formatted_items(filename, "%f", relatives, lambda _: print("... {:^6} entries".format(len(relatives))))
