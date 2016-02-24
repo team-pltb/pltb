@@ -218,6 +218,8 @@ def count_same_model_selections_between_ics(raxml, results):
             for k in product(tree.ics, tree.ics):
                 d[k] += 1;
 
+    assert_dir('eval/res/histograms/model_data')
+
     write_formatted_items('eval/res/histograms/model_data/same_models_between_ics', "%s", [k1.serialize() + " " + k2.serialize() + " " + str(d[(k1,k2)]) for k1, k2 in d.keys() if k1 < k2]);
 
 
