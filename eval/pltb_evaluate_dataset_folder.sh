@@ -25,7 +25,7 @@ function process {
 	# expect $1: pltb
 	# expect $2: dataset
 	# expect $3: result base path
-	hex_seeds=( "12345" "00000" "FFFFF" "54321" );
+	hex_seeds=( "12345" "54321" "00000" "11111" "22222" "33333" "44444" "55555" "66666" "77777" "88888" "99999" "AAAAA" "BBBBB" "CCCCC" "DDDDD" "EEEEE" "FFFFF" );
 
 	# configuration for the cluster we used
 	processes=13
