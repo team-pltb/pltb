@@ -2,29 +2,31 @@
 
 This tool has been designed & developed as a student programming project
 in the context of the module "Bioinformatics" at the Karlsruhe Institute of Technology (KIT).
+See ["Does the choice of nucleotide substitution models matter topologically?"](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-016-0985-x) for further theoretical background.
 
 Its main functionality is to find the best time-reversible substitution models
 for a given dataset and to conduct a tree search using the chosen models afterwards.
 
 For this, the maximum likelihood of every model under the given dataset is
-evaluated and several information criteria are calculated.
+evaluated and several information criteria (AIC, AICc, BIC) are calculated.
 The evaluation uses a random but fixed tree to apply model parameter optimizations,
 leading to the estimation of the maximum likelihood value.
+For each information criterium, the optimal model over the 203 distinct models possible is determined.
 
 ## Make
 
 To build pltb you have to make sure that PLL [http://libpll.org/] is installed.
-Furthermore an MPI implementation (either MPICH or OMPI) is required.
-Afterwards you can call `make` to generate the pltb variants suitable for your system.
+Furthermore an MPI implementation (either [MPICH](https://www.mpich.org/) or [OpenMPI](https://www.open-mpi.org/)) is required.
+Afterwards you can call `make` to generate the pltb variant suitable for your preferences.
 
 Here is a list of available make targets:
-- `avx` pltb built against the avx version of PLL
-- `avx-pthreads` pltb built against the avx version of PLL parallelized with pthreads
-- `sse3` pltb built against the sse3 version of PLL
-- `sse3-pthreads` pltb built against the sse3 version of PLL parallized with pthreads
-- `debug` pltb build without optimizations, with debug symbols and against the avx version of PLL
-- `debug-sse3` pltb build without optimizations, with debug symbols and against the sse3 version of PLL
-- `clang` pltb built against the avx version of PLL; mainly used for syntax and semantic checks
+- `avx` pltb built against the AVX version of PLL
+- `avx-pthreads` pltb built against the AVX version of PLL parallelized with pthreads
+- `sse3` pltb built against the SSE3 version of PLL
+- `sse3-pthreads` pltb built against the SSE3 version of PLL parallized with pthreads
+- `debug` pltb build without optimizations, with debug symbols and against the AVX version of PLL
+- `debug-sse3` pltb build without optimizations, with debug symbols and against the SSE3 version of PLL
+- `clang` pltb built against the AVX version of PLL; mainly used for syntactical and semantic checks
 - `default` implies target `avx`
 - `clean` standard cleanup
 
